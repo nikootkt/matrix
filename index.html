@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Regalito</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+      font-family: monospace;
+      touch-action: none; 
+      cursor: crosshair;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix"></canvas>
+
+  <script>
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+     const words = ['TE AMO', '', 'TE AMO', '', 'TE AMO', '', 'TE AMO', '', 'TE AMO', '', 'TE AMO'];
+    const fontSize = 24;
+    const columns = Math.floor(width / fontSize);
+    const drops = new Array(columns).fill(1);
+
+    class Particle {
+      constructor(x, y, text) {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+        this.vx = (Math.random() - 0.5) * 6;
+        this.vy = (Math.random() - 1.5) * 6;
+        this.alpha = 1;
+        this.size = fontSize + Math.random() * 10;
+        this.gravity = 0.1;
+      }
+      update() {
+        this.vx *= 0.95;
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= 0.02;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha > 0 ? this.alpha : 0;
+        ctx.fillStyle = 'hotpink';
+        ctx.font = `${this.size}px monospace`;
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.restore();
+      }
+      isAlive() {
+        return this.alpha > 0;
+      }
+    }
+
+    let particles = [];
+    let explosionX = width / 2;
+    let explosionY = height / 2;
+    let pointerDown = false;
+    let lastPointerX = width / 2;
+    let lastPointerY = height / 2;
+
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = 'rgba(255, 20, 147, 0.8)';
+      ctx.font = fontSize + 'px monospace';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = words[Math.floor(Math.random() * words.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        drops[i]++;
+        if (drops[i] * fontSize > height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+      }
+    }
+
+    function drawParticles() {
+      if (pointerDown) {
+        explosionX = lastPointerX;
+        explosionY = lastPointerY;
+      }
+
+     
+      for (let i = 0; i < 5; i++) {
+        const text = words[Math.floor(Math.random() * words.length)];
+        particles.push(new Particle(explosionX, explosionY, text));
+      }
+
+      
+      particles.forEach((p, index) => {
+        p.update();
+        p.draw(ctx);
+        if (!p.isAlive()) {
+          particles.splice(index, 1);
+        }
+      });
+    }
+
+    function loop() {
+      drawMatrix();
+      if (pointerDown) {
+        drawParticles();
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    function pointerDownHandler(e) {
+      pointerDown = true;
+      if (e.touches) {
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+      } else {
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+      }
+    }
+
+    function pointerMoveHandler(e) {
+      if (!pointerDown) return;
+      if (e.touches) {
+        lastPointerX = e.touches[0].clientX;
+        lastPointerY = e.touches[0].clientY;
+      } else {
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+      }
+    }
+
+    function pointerUpHandler() {
+      pointerDown = false;
+      particles = [];
+    }
+
+    canvas.addEventListener('mousedown', pointerDownHandler);
+    canvas.addEventListener('mousemove', pointerMoveHandler);
+    canvas.addEventListener('mouseup', pointerUpHandler);
+
+    canvas.addEventListener('touchstart', pointerDownHandler);
+    canvas.addEventListener('touchmove', pointerMoveHandler);
+    canvas.addEventListener('touchend', pointerUpHandler);
+    canvas.addEventListener('touchcancel', pointerUpHandler);
+
+  </script>
+</body>
+</html>
